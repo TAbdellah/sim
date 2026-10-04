@@ -1,0 +1,6 @@
+PC Assembly Lab, offline copy
+
+Unzip this folder anywhere and double-click index.html. No internet needed.
+Works in Chrome, Edge, Firefox and Safari.
+
+Photo credits are in themes/*.zip (CREDITS.txt). Fonts: SIL Open Font License. three.js and JSZip: MIT.

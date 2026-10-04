@@ -1,0 +1,43 @@
+/* ---------------- front-panel power button lead → JFP1 ----------------
+   JFP1 (board space) is the 2×5 header at x 12.2, z 11.45, pin pitch 2.54 mm. MSI pinout:
+   row nearer the CPU (−z): HDD LED (1,3), Reset SW (5,7), reserved (9)
+   row nearer the edge (+z): Power LED (2,4), Power SW (6,8), no pin (10)
+   Each pair is a target in WORLD space (the board is already in the case at this step). */
+const JFP1={x:12.2,z:11.45,p:.26};
+const FP_PAIRS=[{name:"PWR SW",label:"Power SW",col:2.5,row:1,ok:true},{name:"RST SW",label:"Reset SW",col:2.5,row:0},
+  {name:"HDD LED",label:"HDD LED",col:.5,row:0},{name:"PWR LED",label:"Power LED",col:.5,row:1}];
+const fpPairPos=pr=>V3(L.x+JFP1.x+(pr.col-2)*JFP1.p,0,L.z+JFP1.z+(pr.row-.5)*JFP1.p);
+makeCable("fp",{parent:scene,color:0x1a1a1d,radius:.05,plugColor:0x141518,plugSize:[.52,.38,.26],maxLen:40,hoverY:L.y+2.6,floorY:L.y+.6,snapR:.4,
+  anchor:()=>V3(CX1-1.2,8,L.z-11), outDir:()=>V3(-1.2,-.5,0),
+  spawnPos:()=>{ const p=fpPairPos(FP_PAIRS[0]); return V3(p.x+3,L.y+2.6,p.z-2.5); },
+  targets:()=>FP_PAIRS.map(pr=>{ const p=fpPairPos(pr); return {name:pr.name,label:pr.label,x:p.x,z:p.z,seatY:L.y+.42,rot:0,ok:!!pr.ok,err:"e_fpPins"}; }),
+  okMsg:"ok_fp"});
+(function(){ const c=CABLES.fp;                                           // "POWER SW" printed on the plug
+  const lbl=new T.MeshBasicMaterial({map:canvasTex(256,128,(g,W,H)=>{ g.fillStyle="#141518"; g.fillRect(0,0,W,H); g.fillStyle="#e9eaec"; g.font="700 44px 'Barlow Semi Condensed', Arial"; g.textAlign="center"; g.fillText("POWER SW",W/2,H*.64); })});
+  const m=mesh(new T.PlaneGeometry(.5,.24),lbl,[0,c.plugSize[1]+.002,0],c.plug,{cast:false}); m.rotation.x=-Math.PI/2; m.userData={part:"cable",cable:"fp"}; })();
+// ripple ring that keeps pulsing out from the Power SW pair during the step (see loop.js)
+const fpRing=mesh(new T.RingGeometry(.3,.4,32),new T.MeshBasicMaterial({color:0xffc400,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),
+  [JFP1.x+(FP_PAIRS[0].col-2)*JFP1.p,.46,JFP1.z+(FP_PAIRS[0].row-.5)*JFP1.p],boardRoot,{cast:false});
+fpRing.rotation.x=-Math.PI/2; fpRing.visible=false; fpRing.raycast=()=>{};
+// hint frame around the Power SW pair (glows during the step when hints are on)
+const fpMarkMat=new T.MeshStandardMaterial({color:0x3a3c40,roughness:.5});
+(function(){ const g=new T.Group(), pr=FP_PAIRS[0]; g.position.set(JFP1.x+(pr.col-2)*JFP1.p,.42,JFP1.z+(pr.row-.5)*JFP1.p); boardRoot.add(g);
+  [[0,.2,.66,.04],[0,-.2,.66,.04],[.31,0,.04,.44],[-.31,0,.04,.44]].forEach(([x,z,w,d])=>mesh(box(w,.03,d),fpMarkMat,[x,0,z],g,{cast:false})); })();
+/* ---------------- front USB lead → JUSB3 ----------------
+   The case's front USB-A ports reach the board through one thick cable with a 19-pin plug. It goes on JUSB3 (the blue
+   header on the right edge); the 9-pin USB 2.0 headers on the bottom edge (JUSB1, JUSB2) are the wrong ones. */
+const USB2_HDRS=[{name:"JUSB1",x:4.9},{name:"JUSB2",x:6.6}];
+makeCable("fusb",{parent:scene,color:0x1f3f9c,radius:.14,plugColor:0x16181c,plugSize:[1.0,.62,2.3],maxLen:40,hoverY:L.y+2.8,floorY:L.y+.8,
+  anchor:()=>V3(CX1-1.2,7,L.z-10), outDir:()=>V3(-1.2,-.6,.3),
+  spawnPos:()=>V3(L.x+JUSB3.x+3.5,L.y+2.8,L.z+JUSB3.z-3),
+  targets:()=>[{name:"JUSB3",x:L.x+JUSB3.x,z:L.z+JUSB3.z,seatY:L.y+JUSB3.top,rot:0,ok:true},
+    ...USB2_HDRS.map(h=>({name:h.name,x:L.x+h.x,z:L.z+11.7,seatY:L.y+.4,rot:0,ok:false,err:"e_usb2Hdr"}))],
+  okMsg:"ok_frontUsb"});
+(function(){ const c=CABLES.fusb;                                         // "USB 3.0" on the plug's top
+  const lbl=new T.MeshBasicMaterial({map:canvasTex(128,256,(g,W,H)=>{ g.fillStyle="#16181c"; g.fillRect(0,0,W,H); g.save(); g.translate(W/2,H/2); g.rotate(-Math.PI/2);
+    g.fillStyle="#6f9bff"; g.font="700 46px 'Barlow Semi Condensed', Arial"; g.textAlign="center"; g.fillText("USB 3.0",0,16); g.restore(); })});
+  const m=mesh(new T.PlaneGeometry(.9,2.1),lbl,[0,c.plugSize[1]+.002,0],c.plug,{cast:false}); m.rotation.x=-Math.PI/2; m.userData={part:"cable",cable:"fusb"}; })();
+// USB stick in the upper front USB-A port: only in troubleshooting mode (the "front USB" problem)
+const usbStick=new T.Group(); usbStick.position.set(CX1+.25,10,L.z-11.6); usbStick.visible=false; caseG.add(usbStick);
+mesh(box(1.1,1.15,.42),new T.MeshStandardMaterial({color:0xb9bec5,metalness:.9,roughness:.3}),[.3,0,0],usbStick);
+mesh(box(3.2,1.7,.75),new T.MeshStandardMaterial({color:0xc8202a,roughness:.5}),[2.4,0,0],usbStick);
